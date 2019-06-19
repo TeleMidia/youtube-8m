@@ -97,9 +97,15 @@ def frame_iterator(filename, every_ms=1000, max_num_frames=300):
   Yields:
     RGB frame with shape (image height, image width, channels)
   """
+  print('vrau VRAU',cv2.VideoCapture().open("/mnt/backup/VMR/Prasat Robos Khmer.mp4"))
+  print("/mnt/backup/VMR/Prasat Robos Khmer.mp4")
+  print(filename)
   video_capture = cv2.VideoCapture()
+  print('vrau VRAU',video_capture.open(filename))
+  
+  
   if not video_capture.open(filename):
-    print >> sys.stderr, 'Error: Cannot open video file ' + filename
+    print(sys.stderr, 'Error: Cannot open video file ' + filename)
     return
   last_ts = -99999  # The timestamp of last retrieved frame.
   num_retrieved = 0
@@ -150,7 +156,11 @@ def main(unused_argv):
   writer = tf.python_io.TFRecordWriter(FLAGS.output_tfrecords_file)
   total_written = 0
   total_error = 0
+  #print('\n\n\n\n\n\n\n', dir(csv.reader(open(FLAGS.input_videos_csv))),'\n\n\n\n\n\n\n')
   for video_file, labels in csv.reader(open(FLAGS.input_videos_csv)):
+    video_file = video_file.replace("'",'') 
+    print('\n\n\n',video_file,'\n\n\n')
+    print('\n\n\n',labels,'\n\n\n')
     rgb_features = []
     sum_rgb_features = None
     for rgb in frame_iterator(
@@ -163,7 +173,7 @@ def main(unused_argv):
       rgb_features.append(_bytes_feature(quantize(features)))
 
     if not rgb_features:
-      print >> sys.stderr, 'Could not get features for ' + video_file
+      print(sys.stderr, 'Could not get features for ' + video_file)
       total_error += 1
       continue
 
