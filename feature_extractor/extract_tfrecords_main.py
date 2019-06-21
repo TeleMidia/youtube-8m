@@ -34,6 +34,7 @@ import numpy
 import tensorflow as tf
 from tensorflow import app
 from tensorflow import flags
+from tqdm import tqdm
 
 FLAGS = flags.FLAGS
 
@@ -79,7 +80,7 @@ if __name__ == '__main__':
       'entry, containing the file path of the video. This '
       'can be used for debugging but not for training or eval.')
   flags.DEFINE_boolean(
-      'insert_zero_audio_features', True,
+      'insert_zero_audio_features', False,
       'If set, inserts features with name "audio" to be 128-D '
       'zero vectors. This allows you to use YouTube-8M '
       'pre-trained model.')
@@ -97,11 +98,10 @@ def frame_iterator(filename, every_ms=1000, max_num_frames=300):
   Yields:
     RGB frame with shape (image height, image width, channels)
   """
-  print('vrau VRAU',cv2.VideoCapture().open("/mnt/backup/VMR/Prasat Robos Khmer.mp4"))
-  print("/mnt/backup/VMR/Prasat Robos Khmer.mp4")
-  print(filename)
+  #print('vrau VRAU',cv2.VideoCapture().open("/mnt/backup/VMR/Prasat Robos Khmer.mp4"))
+  #print("/mnt/backup/VMR/Prasat Robos Khmer.mp4")
+  #print(filename)
   video_capture = cv2.VideoCapture()
-  print('vrau VRAU',video_capture.open(filename))
   
   
   if not video_capture.open(filename):
@@ -157,59 +157,62 @@ def main(unused_argv):
   total_written = 0
   total_error = 0
   #print('\n\n\n\n\n\n\n', dir(csv.reader(open(FLAGS.input_videos_csv))),'\n\n\n\n\n\n\n')
-  for video_file, labels in csv.reader(open(FLAGS.input_videos_csv)):
-    video_file = video_file.replace("'",'') 
-    print('\n\n\n',video_file,'\n\n\n')
-    print('\n\n\n',labels,'\n\n\n')
-    rgb_features = []
-    sum_rgb_features = None
-    for rgb in frame_iterator(
-        video_file, every_ms=1000.0 / FLAGS.frames_per_second):
-      features = extractor.extract_rgb_frame_features(rgb[:, :, ::-1])
-      if sum_rgb_features is None:
-        sum_rgb_features = features
+
+  for video_file, labels in tqdm(csv.reader(open(FLAGS.input_videos_csv))):
+    try:
+      video_file = video_file.replace("'",'') 
+      #print('\n\n\n',video_file,'\n\n\n')
+      #print('\n\n\n',labels,'\n\n\n')
+      rgb_features = []
+      sum_rgb_features = None
+      for rgb in frame_iterator(
+          video_file, every_ms=1000.0 / FLAGS.frames_per_second):
+        features = extractor.extract_rgb_frame_features(rgb[:, :, ::-1])
+        if sum_rgb_features is None:
+          sum_rgb_features = features
+        else:
+          sum_rgb_features += features
+        rgb_features.append(_bytes_feature(quantize(features)))
+
+      if not rgb_features:
+        print(sys.stderr, 'Could not get features for ' + video_file)
+        total_error += 1
+        continue
+
+      mean_rgb_features = sum_rgb_features / len(rgb_features)
+
+      # Create SequenceExample proto and write to output.
+      feature_list = {
+          FLAGS.image_feature_key: tf.train.FeatureList(feature=rgb_features),
+      }
+      context_features = {
+          FLAGS.labels_feature_key:
+              _int64_list_feature(sorted(map(int, labels.split(';')))),
+          FLAGS.video_file_feature_key:
+              _bytes_feature(_make_bytes(map(ord, video_file))),
+          'mean_' + FLAGS.image_feature_key:
+              tf.train.Feature(
+                  float_list=tf.train.FloatList(value=mean_rgb_features)),
+      }
+
+      if FLAGS.insert_zero_audio_features:
+        zero_vec = [0] * 128
+        feature_list['audio'] = tf.train.FeatureList(
+            feature=[_bytes_feature(_make_bytes(zero_vec))] * len(rgb_features))
+        context_features['mean_audio'] = tf.train.Feature(
+            float_list=tf.train.FloatList(value=zero_vec))
+
+      if FLAGS.skip_frame_level_features:
+        example = tf.train.SequenceExample(
+            context=tf.train.Features(feature=context_features))
       else:
-        sum_rgb_features += features
-      rgb_features.append(_bytes_feature(quantize(features)))
-
-    if not rgb_features:
-      print(sys.stderr, 'Could not get features for ' + video_file)
-      total_error += 1
-      continue
-
-    mean_rgb_features = sum_rgb_features / len(rgb_features)
-
-    # Create SequenceExample proto and write to output.
-    feature_list = {
-        FLAGS.image_feature_key: tf.train.FeatureList(feature=rgb_features),
-    }
-    context_features = {
-        FLAGS.labels_feature_key:
-            _int64_list_feature(sorted(map(int, labels.split(';')))),
-        FLAGS.video_file_feature_key:
-            _bytes_feature(_make_bytes(map(ord, video_file))),
-        'mean_' + FLAGS.image_feature_key:
-            tf.train.Feature(
-                float_list=tf.train.FloatList(value=mean_rgb_features)),
-    }
-
-    if FLAGS.insert_zero_audio_features:
-      zero_vec = [0] * 128
-      feature_list['audio'] = tf.train.FeatureList(
-          feature=[_bytes_feature(_make_bytes(zero_vec))] * len(rgb_features))
-      context_features['mean_audio'] = tf.train.Feature(
-          float_list=tf.train.FloatList(value=zero_vec))
-
-    if FLAGS.skip_frame_level_features:
-      example = tf.train.SequenceExample(
-          context=tf.train.Features(feature=context_features))
-    else:
-      example = tf.train.SequenceExample(
-          context=tf.train.Features(feature=context_features),
-          feature_lists=tf.train.FeatureLists(feature_list=feature_list))
-    writer.write(example.SerializeToString())
-    total_written += 1
-
+        example = tf.train.SequenceExample(
+            context=tf.train.Features(feature=context_features),
+            feature_lists=tf.train.FeatureLists(feature_list=feature_list))
+      writer.write(example.SerializeToString())
+      total_written += 1
+    except Exception as e: 
+        print(e)
   writer.close()
   print('Successfully encoded %i out of %i videos' %
         (total_written, total_written + total_error))

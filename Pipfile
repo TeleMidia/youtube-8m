@@ -1,3 +1,6 @@
 [packages]
 opencv-python = "*"
 tensorflow-gpu = "==1.4"
+tqdm = "*"
+numpy = "*"
+absl-py = "*"

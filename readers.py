@@ -73,7 +73,7 @@ class YT8MAggregatedFeatureReader(BaseReader):
 
   def __init__(  # pylint: disable=dangerous-default-value
       self,
-      num_classes=3862,
+      num_classes=3862,#3862
       feature_sizes=[1024, 128],
       feature_names=["mean_rgb", "mean_audio"]):
     """Construct a YT8MAggregatedFeatureReader.
@@ -158,7 +158,7 @@ class YT8MFrameFeatureReader(BaseReader):
       max_frames=300,
       segment_labels=False,
       segment_size=5):
-    """Construct a YT8MFrameFeatureReader.
+    """Construct a  .
 
     Args:
       num_classes: a positive integer for the number of classes.

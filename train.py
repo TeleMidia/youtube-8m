@@ -180,7 +180,7 @@ def get_input_data_tensors(reader,
     training_data = [
         reader.prepare_reader(filename_queue) for _ in range(num_readers)
     ]
-
+    #print('\n\n\n\n',training_data[-1]['labels'],'\n\n\n\n')
     return tf.train.shuffle_batch_join(
         training_data,
         batch_size=batch_size,
@@ -627,6 +627,9 @@ def get_reader():
   feature_names, feature_sizes = utils.GetListOfFeatureNamesAndSizes(
       FLAGS.feature_names, FLAGS.feature_sizes)
 
+  #print('FEATURE NAMES',feature_names,'\n\n\n\n\n')
+  #print('FEATURES SIZE',feature_sizes,'\n\n\n\n\n')
+
   if FLAGS.frame_features:
     reader = readers.YT8MFrameFeatureReader(
         feature_names=feature_names,
@@ -636,6 +639,7 @@ def get_reader():
     reader = readers.YT8MAggregatedFeatureReader(
         feature_names=feature_names, feature_sizes=feature_sizes)
 
+  print(reader)
   return reader
 
 
