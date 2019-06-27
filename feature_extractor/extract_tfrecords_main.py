@@ -153,13 +153,20 @@ def quantize(features, min_quantized_value=-2.0, max_quantized_value=2.0):
 
 def main(unused_argv):
   extractor = feature_extractor.YouTube8MFeatureExtractor(FLAGS.model_dir)
-  writer = tf.python_io.TFRecordWriter(FLAGS.output_tfrecords_file)
   total_written = 0
   total_error = 0
   #print('\n\n\n\n\n\n\n', dir(csv.reader(open(FLAGS.input_videos_csv))),'\n\n\n\n\n\n\n')
 
   for video_file, labels in tqdm(csv.reader(open(FLAGS.input_videos_csv))):
     try:
+      file_title = video_file.split('/')[-1].split('.')[0].replace("'","")
+      #print('\n\n\n',video_file,'\n\n\n')
+      #print(FLAGS.output_tfrecords_file+file_title+'.tfrecord','\n\n\n')
+      if os.path.exists(FLAGS.output_tfrecords_file+file_title+'.tfrecord'):
+        print('TfRecord already exists! Skipping this one.')
+        total_written += 1
+        continue
+      writer = tf.python_io.TFRecordWriter(FLAGS.output_tfrecords_file+file_title+'.tfrecord')
       video_file = video_file.replace("'",'') 
       #print('\n\n\n',video_file,'\n\n\n')
       #print('\n\n\n',labels,'\n\n\n')
@@ -211,11 +218,11 @@ def main(unused_argv):
             feature_lists=tf.train.FeatureLists(feature_list=feature_list))
       writer.write(example.SerializeToString())
       total_written += 1
+      writer.close()
+      print('Successfully encoded %i out of %i videos' % (total_written, total_written + total_error))
     except Exception as e: 
         print(e)
-  writer.close()
-  print('Successfully encoded %i out of %i videos' %
-        (total_written, total_written + total_error))
+        total_error += 1
 
 
 if __name__ == '__main__':

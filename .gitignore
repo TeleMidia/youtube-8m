@@ -1,0 +1,2 @@
+feature_extractor/audio_extractor/vggish_model.ckpt
+feature_extractor/audio_extractor/vggish_pca_params.npz
