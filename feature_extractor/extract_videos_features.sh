@@ -1,6 +1,5 @@
 #!/bin/bash
 # Script to convert, extract features from mp4 and webm videos
-
  #"/mnt/HDSDE/porn_videos/"
  #"/mnt/HDSDE/gore_videos/"
 videos_dir_path='/mnt/HDSDE/gore_videos/' #'/mnt/HDSDE/yt_videos/'

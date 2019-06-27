@@ -116,7 +116,7 @@ def main(_):
   # If needed, prepare a record writer to store the postprocessed embeddings.
   writer = tf.python_io.TFRecordWriter(
       FLAGS.tfrecord_file) if FLAGS.tfrecord_file else None
-  
+
   with tf.Graph().as_default(), tf.Session() as sess:
     # Define the model in inference mode, load the checkpoint, and
     # locate input and output tensors.
@@ -134,6 +134,7 @@ def main(_):
     # print(len(embedding_batch))
     postprocessed_batch = pproc.postprocess(embedding_batch) # I COMMENTED THE QUANTIZATION IN THE POST PROCESSING CLASS
     csv_writer = None
+
     if FLAGS.csv_file:
       csv_writer = csv.writer(open(FLAGS.csv_file, 'w'))
     if csv_writer:
